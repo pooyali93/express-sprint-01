@@ -40,7 +40,7 @@ const bookingsController = async(req,res) => {
 };
 
 const salesController = async(req,res) => {
-    const id = req.params.id; end
+    const id = req.params.id;
 
     // Build SQL 
     const table  = "bookings";
