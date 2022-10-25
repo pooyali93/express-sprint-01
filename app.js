@@ -1,6 +1,7 @@
 // Imports -----------------------------
 import express from "express";
 import database from "./database.js";
+import cors from 'cors';
 // Configure express app ---------------
 
 const app = new express();
@@ -12,7 +13,7 @@ app.use(function (req, res, next) {
     next();
   });
   
-  app.use(cors({ origin: '*' }));
+ app.use(cors({ origin: '*' }));
   
 // Controllers -------------------------
 const bookingsController = async(req,res) => {
