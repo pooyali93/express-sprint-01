@@ -4,6 +4,14 @@ import database from "./database.js";
 // Configure express app ---------------
 const app = new express();
 // Configure middleware ----------------
+app.use(function (req, res, next) {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+    next();
+  });
+  
+  app.use(cors({ origin: '*' }));
+  
 // Controllers -------------------------
 const bookingsController = async(req,res) => {
     const id = req.params.id; // Undefined in the case of the /api/bookings end
