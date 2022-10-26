@@ -55,7 +55,7 @@ const salesController = async(req,res) => {
 
     // Build SQL 
     const table  = "bookings";
-    const fields = ['VehicleMake', 'VehicleModel', 'VehicleYear','VehiclePrice', 'DateBooked'];
+    const fields = ['BookingID','VehicleMake', 'VehicleModel', 'VehicleYear','VehiclePrice', 'DateBooked'];
     const whereField = 'SalesId'
     const extendedTable = `${table} LEFT JOIN vehicles ON bookings.VehicleId = vehicles.VehicleId`;
     const extendedFields = `${fields}, CONCAT (bookings.SalesId) AS SalesPerson `;
