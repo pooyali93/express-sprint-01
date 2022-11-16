@@ -16,78 +16,94 @@ app.use(function (req, res, next) {
  app.use(cors({ origin: '*' }));
   
 // Controllers -------------------------
-const bookingsController = async(req,res) => {
-    const id = req.params.id; // Undefined in the case of the /api/bookings end
-
-    // Build SQL 
-    const table  = "bookings";
-    const fields = ['VehicleMake', 'VehicleModel', 'VehicleYear','VehiclePrice', 'DateBooked'];
-    const whereField = 'SalesId';
-    const extendedTable = `${table} LEFT JOIN vehicles ON bookings.VehicleId = vehicles.VehicleId`;
-    const extendedFields = `${fields}, CONCAT (bookings.SalesId) AS SalesPerson `;
-    let sql = `SELECT ${extendedFields} FROM ${extendedTable} `;
-    if(id) sql += ` WHERE ${whereField} = ${id}`
-    // Execute query
-
-    let isSuccess = false;
-    let message = "";
-    let result = null; 
-    try {
-        [result] = await database.query(sql);
-        if(result.length ===0) message = 'No record(s)';
-        else{
-        isSuccess = true;
-        message = 'Record(s) successfully recovered';
-    }
-        
-    } catch (error) {
-        message = `Failed to execute query: ${error.message}`
-    }
+const bookingsSelectSql = (whereField, id) => {
+    let table = '((bookings LEFT JOIN vehicles ON bookings.VehicleId = vehicles.VehicleId) LEFT JOIN users ON bookings.CustomerId = users.UserId)';
+    let fields = ['UserId, userFirstName, userSurname, VehicleMake, VehicleModel, VehicleYear,VehiclePrice, DateBooked, CONCAT (bookings.SalesId) AS SalesPerson'];
+   
+    let sql = `SELECT ${fields} FROM ${table}`;
+    if (id) sql += ` WHERE ${whereField}=${id}`;
     
-    isSuccess
-     ? res.status(200).json(result)
-     : res.status(400).json({message});
+    return sql;
+  };
 
-};
+  const readBookings = async (whereField, id) => {
+    const sql = bookingsSelectSql(whereField, id );
 
-const salesController = async(req,res) => {
-    const id = req.params.id;
-
-    // Build SQL 
-    const table  = "bookings";
-    const fields = ['BookingID','VehicleMake', 'VehicleModel', 'VehicleYear','VehiclePrice', 'DateBooked'];
-    const whereField = 'SalesId'
-    const extendedTable = `${table} LEFT JOIN vehicles ON bookings.VehicleId = vehicles.VehicleId`;
-    const extendedFields = `${fields}, CONCAT (bookings.SalesId) AS SalesPerson `;
-    const sql = `SELECT ${extendedFields} FROM ${extendedTable}  WHERE ${whereField} = ${id}`
-    // Execute query
-
-    let isSuccess = false;
-    let message = "";
-    let result = null; 
     try {
-        [result] = await database.query(sql);
-        if(result.length ===0) message = 'No record(s)';
-        else{
-        isSuccess = true;
-        message = 'Record(s) successfully recovered';
-    }
-        
-    } catch (error) {
-        message = `Failed to execute query: ${error.message}`
-    }
+        const [result] = await database.query(sql);
+        return (result.length === 0)
+          ? { isSuccess: false, result: null, message: 'No record(s) found' }
+          : { isSuccess: true, result: result, message: 'Record(s) successfully recovered' };
+      }
+      catch (error) {
+        return { isSuccess: false, result: null, message: `Failed to execute query: ${error.message}` };
+      }
+    };
+
+const bookingsController = async(res, whereField, id) => {
+
+    // Data Access 
+    const { isSuccess, result, message: accessMessage } = await readBookings(whereField, id);
+    if (!isSuccess) return res.status(400).json({ message: accessMessage });
+  
+    // Response to request
+    res.status(200).json(result);
+  };
+
+
+  const usersSelectSql = (whereField, id) => {
+    let table = 'users LEFT JOIN UserTypes ON userUserTypeId=UserTypeID';
+    let fields = ['UserId, userFirstName, userSurname, userUserTypeId, userTypeName'];
+   
+    let sql = `SELECT ${fields} FROM ${table}`;
+    if (id) sql += ` WHERE ${whereField}=${id}`;
     
-    isSuccess
-     ? res.status(200).json(result)
-     : res.status(400).json({message});
+    return sql;
+  };
 
-};
+  const readUsers = async (whereField, id) => {
+    const sql = usersSelectSql(whereField, id );
 
+    try {
+        const [result] = await database.query(sql);
+        return (result.length === 0)
+          ? { isSuccess: false, result: null, message: 'No record(s) found' }
+          : { isSuccess: true, result: result, message: 'Record(s) successfully recovered' };
+      }
+      catch (error) {
+        return { isSuccess: false, result: null, message: `Failed to execute query: ${error.message}` };
+      }
+    };
+
+
+    // Users
+const usersController = async(res, whereField, id) => {
+
+    // Data Access 
+    const { isSuccess, result, message: accessMessage } = await readUsers(whereField, id);
+    if (!isSuccess) return res.status(400).json({ message: accessMessage });
+  
+    // Response to request
+    res.status(200).json(result);
+  };
+
+const postBookingsController = async(req,res) => {
+    // Va
+    const sql = buildBookingsInsertSQL (req.body);
+}
 // Endpoints ---------------------------
-app.get('/api/bookings', bookingsController);
-app.get('/api/bookings/:id', bookingsController);
-app.get('/api/bookings/sales/:id', salesController);
+app.get('/api/bookings', (req, res) =>  bookingsController(res, null, null));
+app.get('/api/bookings/:id(\\d+)',(req, res) =>  bookingsController(res, "BookingId",  req.params.id));
+app.get('/api/bookings/sales/:id', (req, res) =>  bookingsController(res,"SalesId",  req.params.id));
+app.get('/api/bookings/user/:id', (req, res) =>  bookingsController(res,"CustomerId",  req.params.id));
 
+app.post('/api/bookings', postBookingsController);
+
+// Users
+const STAFF = 1;
+const STUDENT = 2;
+app.get('/api/users', (req, res) => usersController(res, null, null, false));
+app.get('/api/users/:id(\\d+)', (req, res) => usersController(res, "UserID", req.params.id, false));
 // Start server ------------------------
 const PORT = process.env.PORT || 5000;
 app.listen(PORT,() => console.log(`Server started on port ${PORT}`));
