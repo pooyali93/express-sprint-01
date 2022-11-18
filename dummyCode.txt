@@ -1,0 +1,68 @@
+
+
+const salesController = async(req,res) => {
+    const id = req.params.id;
+
+    // Build SQL 
+    const table  = 'bookings LEFT JOIN vehicles ON bookings.VehicleId = vehicles.VehicleId';
+    const fields = ['VehicleMake', 'VehicleModel', 'VehicleYear','VehiclePrice', 'DateBooked', 'CONCAT (bookings.SalesId) AS SalesPerson'];
+    const whereField = 'SalesId'
+    const extendedTable = `${table}`;
+    const extendedFields = `${fields}`;
+    const sql = `SELECT ${extendedFields} FROM ${extendedTable}  WHERE ${whereField} = ${id}`
+    // Execute query
+
+    let isSuccess = false;
+    let message = "";
+    let result = null; 
+    try {
+        [result] = await database.query(sql);
+        if(result.length ===0) message = 'No record(s)';
+        else{
+        isSuccess = true;
+        message = 'Record(s) successfully recovered';
+    }
+        
+    } catch (error) {
+        message = `Failed to execute query: ${error.message}`
+    }
+    
+    isSuccess
+     ? res.status(200).json(result)
+     : res.status(400).json({message});
+
+};
+
+const usersController = async(req,res) => {
+    const id = req.params.id;
+
+    // Build SQL 
+    const fields = ['UserId, UserFirstName, VehicleMake, VehicleModel, VehicleYear,VehiclePrice,SalesId, DateBooked'];
+    const table  = '(bookings LEFT JOIN users ON bookings.CustomerId = users.UserId)' ;
+    const table1  = 'LEFT JOIN vehicles ON bookings.vehicleId = vehicles.vehicleId' ;
+    const whereField = 'UserId';
+    const extendedFields = `${fields}`;
+    const extendedTable = `${table} ${table1}`;
+    const sql = `SELECT ${extendedFields} FROM ${extendedTable}  WHERE ${whereField} = ${id}`
+    // Execute query
+
+    let isSuccess = false;
+    let message = "";
+    let result = null; 
+    try {
+        [result] = await database.query(sql);
+        if(result.length ===0) message = 'No record(s)';
+        else{
+        isSuccess = true;
+        message = 'Record(s) successfully recovered';
+    }
+        
+    } catch (error) {
+        message = `Failed to execute query: ${error.message}`
+    }
+    
+    isSuccess
+     ? res.status(200).json(result)
+     : res.status(400).json({message});
+
+};
