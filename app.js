@@ -17,8 +17,10 @@ app.use(function (req, res, next) {
   
 // Controllers -------------------------
 const bookingsSelectSql = (whereField, id) => {
-    let table = '((bookings LEFT JOIN vehicles ON bookings.VehicleId = vehicles.VehicleId) LEFT JOIN users ON bookings.CustomerId = users.UserId)';
-    let fields = ['UserId, userFirstName, userSurname, VehicleMake, VehicleModel, VehicleYear,VehiclePrice, DateBooked, CONCAT (bookings.SalesId) AS SalesPerson'];
+    let table = `(((bookings LEFT JOIN vehicles ON bookings.VehicleId = vehicles.VehicleId) 
+      LEFT JOIN users AS customers ON bookings.CustomerId = customers.UserId) 
+      LEFT JOIN users AS salesperson ON bookings.SalesId = salesperson.UserId)`;
+    let fields = "VehicleMake, VehicleModel, VehicleYear,VehiclePrice, DateBooked, bookings.SalesId AS SalesId, CONCAT(salesperson.userFirstName,' ', salesperson.userSurname) AS Salesperson, bookings.CustomerId AS UserId, CONCAT(customers.userFirstName,' ', customers.userSurname) AS Customer";
    
     let sql = `SELECT ${fields} FROM ${table}`;
     if (id) sql += ` WHERE ${whereField}=${id}`;
@@ -88,22 +90,28 @@ const usersController = async(res, whereField, id) => {
   };
 
 const postBookingsController = async(req,res) => {
-    // Va
+    // Validation 
     const sql = buildBookingsInsertSQL (req.body);
 }
 // Endpoints ---------------------------
 app.get('/api/bookings', (req, res) =>  bookingsController(res, null, null));
 app.get('/api/bookings/:id(\\d+)',(req, res) =>  bookingsController(res, "BookingId",  req.params.id));
 app.get('/api/bookings/sales/:id', (req, res) =>  bookingsController(res,"SalesId",  req.params.id));
-app.get('/api/bookings/user/:id', (req, res) =>  bookingsController(res,"CustomerId",  req.params.id));
+app.get('/api/bookings/users/:id', (req, res) =>  bookingsController(res,"CustomerId",  req.params.id));
+app.get('/api/bookings/customers/:id', (req, res) =>  bookingsController(res,"CustomerId",  req.params.id));
 
 app.post('/api/bookings', postBookingsController);
 
 // Users
-const STAFF = 1;
-const STUDENT = 2;
+const SALESPERSON = 1;
+const CUSTOMERS = 2;
 app.get('/api/users', (req, res) => usersController(res, null, null, false));
-app.get('/api/users/:id(\\d+)', (req, res) => usersController(res, "UserID", req.params.id, false));
+app.get('/api/users/:id(\\d+)', (req, res) => usersController(res, "UserId", req.params.id, false));
+app.get('/api/users/customers', (req, res) => usersController(res, CUSTOMERS, req.params.id, false));
+app.get('/api/users/sales', (req, res) => usersController(res, SALESPERSON, req.params.id, false));
+
+app.get('/api/users/customers/:id', (req, res) => usersController(res,"userUserTypeId", req.params.id, false));
+app.get('/api/users/sales/:id', (req, res) => usersController(res,"userUserTypeId", req.params.id, false));
 // Start server ------------------------
 const PORT = process.env.PORT || 5000;
 app.listen(PORT,() => console.log(`Server started on port ${PORT}`));
